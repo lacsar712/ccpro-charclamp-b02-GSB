@@ -2,9 +2,40 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from charclamp.domain.models import BurnShift, Clamp, Site, User, utcnow
+from charclamp.domain.models import BoardOrder, BurnShift, Clamp, Site, User, utcnow
 from charclamp.infra.db import SyncSessionLocal
 from charclamp.infra.security import hash_password
+
+
+def _ensure_board_order(session) -> None:
+    """每次启动幂等校准顶栏排列单行：缺则按窑号建默认序，新增窑补到末尾。"""
+    clamps = list(session.query(Clamp).order_by(Clamp.code).all())
+    row = session.get(BoardOrder, BoardOrder.SINGLETON_ID)
+    valid_ids = {c.id for c in clamps}
+    if row is None:
+        if clamps:
+            session.add(
+                BoardOrder(
+                    id=BoardOrder.SINGLETON_ID,
+                    clamp_ids=",".join(str(c.id) for c in clamps),
+                    version=0,
+                )
+            )
+        return
+    known = [cid for cid in (row.clamp_ids.split(",") if row.clamp_ids else []) if cid.isdigit() and int(cid) in valid_ids]
+    seen: set[int] = set()
+    ordered: list[int] = []
+    for raw in known:
+        cid = int(raw)
+        if cid not in seen:
+            seen.add(cid)
+            ordered.append(cid)
+    ordered.extend(c.id for c in clamps if c.id not in seen)
+    new_value = ",".join(str(cid) for cid in ordered)
+    if new_value != row.clamp_ids:
+        row.clamp_ids = new_value
+        row.version += 1
+        row.updated_at = utcnow()
 
 
 def seed_demo() -> None:
@@ -26,6 +57,7 @@ def seed_demo() -> None:
             worker.role = "worker"
 
         if session.query(Site).first():
+            _ensure_board_order(session)
             session.commit()
             return
 
@@ -64,5 +96,13 @@ def seed_demo() -> None:
                     notes="已出炭班次",
                 ),
             ]
+        )
+        session.flush()
+        session.add(
+            BoardOrder(
+                id=BoardOrder.SINGLETON_ID,
+                clamp_ids=",".join(str(cid) for cid in (c1.id, c2.id, c3.id)),
+                version=0,
+            )
         )
         session.commit()

@@ -462,3 +462,73 @@ input, select, textarea {
   .timeline-head { flex-direction: column; align-items: stretch; }
   .kiln-chip { min-width: 132px; }
 }
+
+/* —— board order editing (admin only) —— */
+.board-order-form { display: block; }
+
+.board-notice { margin: 0 0 10px; }
+
+.kiln-row.is-ordering {
+  gap: 12px;
+  padding: 12px 6px 20px;
+  border: 1px dashed var(--ember-deep);
+  border-radius: 14px;
+  background: rgba(180, 83, 9, 0.06);
+}
+
+.kiln-chip.is-draggable {
+  position: relative;
+  cursor: grab;
+  user-select: none;
+}
+
+.kiln-chip.is-draggable:hover { transform: none; border-color: var(--line); }
+
+.kiln-chip.is-dragging {
+  opacity: 0.45;
+  cursor: grabbing;
+}
+
+.kiln-chip.is-order-anchor { opacity: 0.75; }
+
+.order-move {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: 2px;
+}
+
+.order-step {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  font-size: 1.05rem;
+  line-height: 1;
+  color: var(--ink);
+  background: var(--char);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.order-step:hover { border-color: var(--ember); color: #ffedd5; }
+
+.order-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.timeline-head-actions {
+  display: inline-flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .order-toolbar { gap: 8px; }
+  .timeline-head-actions { width: 100%; }
+}

@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import re
+
 from charclamp.domain.models import BurnShift, Clamp
 
 MIN_PEAK_TEMP_FOR_DRAWN = 400.0
+
+_ORDER_TOKEN_RE = re.compile(r"^\d+$")
 
 
 class RuleError(ValueError):
@@ -43,3 +47,28 @@ def assert_can_set_clamp_status(clamp: Clamp, new_status: str) -> None:
         ok, msg = can_mark_clamp_drawn(clamp)
         if not ok:
             raise RuleError(msg)
+
+
+def parse_clamp_order(raw: str | None, valid_ids: set[int]) -> list[int]:
+    """解析顶部窑剪影排列提交值。
+
+    要求：非空、全部为整数 id、无重复，且与现存窑 id 集合完全一致
+    （既不能少排、漏排，也不能夹带不存在的窑）。排列只决定展示顺序，
+    不允许借此改动任何窑态或窑号。
+    """
+    if raw is None or not raw.strip():
+        raise RuleError("排列内容为空，未保存")
+    tokens = [t.strip() for t in raw.split(",") if t.strip()]
+    order: list[int] = []
+    for tok in tokens:
+        if not _ORDER_TOKEN_RE.match(tok):
+            raise RuleError("排列中存在非法窑编号，未保存")
+        cid = int(tok)
+        if cid in order:
+            raise RuleError("排列中存在重复窑，未保存")
+        if cid not in valid_ids:
+            raise RuleError("排列中包含不存在的窑，未保存")
+        order.append(cid)
+    if set(order) != valid_ids:
+        raise RuleError("排列必须且只能包含全部现有窑，未保存")
+    return order

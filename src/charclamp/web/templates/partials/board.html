@@ -1,3 +1,71 @@
+{% if board_notice %}
+<div class="flash flash-{{ board_notice_cat or 'ok' }} board-notice" role="status">{{ board_notice }}</div>
+{% endif %}
+
+{% if order_edit and user and user.role == 'admin' %}
+<form
+  class="board-order-form"
+  hx-post="/board/order"
+  hx-target="#board"
+  hx-swap="innerHTML"
+>
+  <input type="hidden" name="version" value="{{ board_version }}" />
+  <input type="hidden" name="clamp_id" value="{{ active_clamp_id or '' }}" />
+  <input
+    type="hidden"
+    name="order"
+    id="board-order-field"
+    value="{% for clamp in clamps %}{{ clamp.id }}{% if not loop.last %},{% endif %}{% endfor %}"
+  />
+  <section class="kiln-row is-ordering" aria-label="炭窑排列编辑（拖拽或用箭头调整左右顺序）">
+    <span class="kiln-chip kiln-all is-order-anchor" title="「全部窑」固定在最前，不参与排序">
+      <span class="kiln-svg kiln-all" aria-hidden="true">
+        <svg viewBox="0 0 48 56" width="40" height="46"><path d="M8 48 L14 18 Q24 6 34 18 L40 48 Z" fill="currentColor" opacity=".35"/><path d="M16 48 V22 Q24 12 32 22 V48" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+      </span>
+      <span class="kiln-meta">
+        <strong>全部窑</strong>
+        <em>固定首位</em>
+      </span>
+    </span>
+    {% for clamp in clamps %}
+    <div
+      class="kiln-chip status-{{ clamp.status }} is-draggable"
+      draggable="true"
+      data-clamp-id="{{ clamp.id }}"
+      title="拖拽或用箭头调整位置"
+    >
+      <span class="kiln-svg" aria-hidden="true">
+        <svg viewBox="0 0 48 56" width="44" height="50">
+          <path class="kiln-body" d="M10 50 L15 22 Q24 8 33 22 L38 50 Z" />
+          <path class="kiln-mouth" d="M20 50 V28 Q24 22 28 28 V50" />
+          <circle class="kiln-glow" cx="24" cy="34" r="4" />
+          <text x="24" y="14" text-anchor="middle" class="kiln-code-svg">{{ clamp.code[-1] }}</text>
+        </svg>
+      </span>
+      <span class="kiln-meta">
+        <strong>{{ clamp.code }}</strong>
+        <em>{{ status_labels.get(clamp.status, clamp.status) }} · {{ clamp.wood_species or '—' }}</em>
+      </span>
+      <span class="order-move">
+        <button type="button" class="order-step" data-move="left" aria-label="左移">‹</button>
+        <button type="button" class="order-step" data-move="right" aria-label="右移">›</button>
+      </span>
+    </div>
+    {% endfor %}
+  </section>
+  <div class="order-toolbar">
+    <button type="submit" class="btn">保存排列</button>
+    <button
+      type="button"
+      class="btn ghost"
+      hx-get="/timeline/partial{% if active_clamp_id %}?clamp_id={{ active_clamp_id }}{% endif %}"
+      hx-target="#board"
+      hx-swap="innerHTML"
+    >取消</button>
+    <span class="hint">仅调整左右顺序，不改变窑态与窑号；v{{ board_version }}</span>
+  </div>
+</form>
+{% else %}
 <section class="kiln-row" aria-label="炭窑筛选">
   <a
     class="kiln-chip {% if not active_clamp_id %}is-active{% endif %}"
@@ -40,21 +108,33 @@
   </a>
   {% endfor %}
 </section>
+{% endif %}
 
 <header class="timeline-head">
   <div>
     <h1>焖烧时间轴</h1>
     <p>点击上方窑剪影筛选班次；登记与出炭在侧抽屉完成，不另开列表页。</p>
   </div>
-  {% if active_clamp_id %}
-  <button
-    type="button"
-    class="btn ghost"
-    hx-get="/drawer/clamp/{{ active_clamp_id }}"
-    hx-target="#drawer-root"
-    hx-swap="innerHTML"
-  >操作当前窑</button>
-  {% endif %}
+  <div class="timeline-head-actions">
+    {% if not order_edit and user and user.role == 'admin' %}
+    <button
+      type="button"
+      class="btn ghost"
+      hx-get="/board/order/edit{% if active_clamp_id %}?clamp_id={{ active_clamp_id }}{% endif %}"
+      hx-target="#board"
+      hx-swap="innerHTML"
+    >调整窑列顺序</button>
+    {% endif %}
+    {% if active_clamp_id %}
+    <button
+      type="button"
+      class="btn ghost"
+      hx-get="/drawer/clamp/{{ active_clamp_id }}"
+      hx-target="#drawer-root"
+      hx-swap="innerHTML"
+    >操作当前窑</button>
+    {% endif %}
+  </div>
 </header>
 
 {% include "partials/timeline_feed.html" %}

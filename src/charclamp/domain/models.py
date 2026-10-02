@@ -67,3 +67,20 @@ class BurnShift(Base):
     notes: Mapped[str] = mapped_column(Text, nullable=False, default="")
 
     clamp: Mapped[Clamp] = relationship(back_populates="shifts")
+
+
+class BoardOrder(Base):
+    """顶部窑剪影行的左右排列（单行单例，id 恒为 1）。
+
+    clamp_ids 为按展示顺序排列的 Clamp.id，逗号分隔；version 单调递增，
+    用于管理员并发保存时的乐观锁比较，互不覆盖。
+    """
+
+    __tablename__ = "board_order"
+
+    SINGLETON_ID = 1
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    clamp_ids: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
