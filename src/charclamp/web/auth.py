@@ -23,5 +23,7 @@ session_auth = SessionAuth[User, ServerSideSessionBackend](
     session_backend_config=ServerSideSessionConfig(
         session_id_bytes=32,
     ),
-    exclude=["/", "/login", "/logout", "/static", "/schema", "/favicon.ico"],
+    # 注意：不能把 "/" 放进 exclude——该模式会贪婪匹配所有路径，
+    # 使认证中间件整体失效（Litestar 启动告警）。
+    exclude=["/login", "/logout", "/static", "/schema", "/favicon.ico"],
 )

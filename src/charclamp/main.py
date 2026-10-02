@@ -10,7 +10,13 @@ from litestar.static_files import create_static_files_router
 from litestar.template.config import TemplateConfig
 
 from charclamp.web.auth import session_auth
-from charclamp.web.controllers import AuthController, ClampController, ShiftController, TimelineController
+from charclamp.web.controllers import (
+    AuthController,
+    ClampController,
+    LayoutController,
+    ShiftController,
+    TimelineController,
+)
 
 WEB_DIR = Path(__file__).parent / "web"
 TEMPLATE_DIR = WEB_DIR / "templates"
@@ -27,6 +33,7 @@ app = Litestar(
         AuthController,
         ClampController,
         ShiftController,
+        LayoutController,
         create_static_files_router(path="/static", directories=[STATIC_DIR]),
     ],
     template_config=TemplateConfig(directory=TEMPLATE_DIR, engine=JinjaTemplateEngine),

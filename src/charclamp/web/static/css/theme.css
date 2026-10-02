@@ -437,6 +437,50 @@ input, select, textarea {
   margin-top: 8px;
 }
 
+/* —— admin clamp layout ordering —— */
+.layout-form { display: grid; gap: 14px; }
+
+.layout-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.layout-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #221c16;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.layout-item.is-dragging { opacity: 0.5; }
+
+.layout-grip {
+  cursor: grab;
+  color: var(--muted);
+  font-size: 1.05rem;
+  user-select: none;
+}
+
+.layout-code { font-weight: 700; min-width: 88px; }
+
+.layout-move {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 4px;
+}
+
+.layout-move .btn {
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
 .login-body {
   min-height: 100vh;
   display: grid;

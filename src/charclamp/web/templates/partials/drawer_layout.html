@@ -1,0 +1,115 @@
+<aside class="drawer" role="dialog" aria-label="排列窑剪影">
+  <header class="drawer-head">
+    <h2>排列窑剪影</h2>
+    <button type="button" class="icon-close" onclick="closeDrawer()" aria-label="关闭">×</button>
+  </header>
+  <div class="drawer-body">
+    <p class="drawer-lead">拖动窑卡或用 ▲▼ 调整左右顺序，保存后整页与局部刷新一致生效。</p>
+    <p class="hint">仅调整展示顺序，不会改变窑号、窑态或任何班次数据。操作工无此入口。</p>
+
+    <form method="post" action="/layout/order" class="layout-form">
+      <input type="hidden" name="version" value="{{ layout_version }}" />
+      <input type="hidden" name="ordering" value="{{ current_ids | join(',') }}" />
+
+      <ol class="layout-list" id="layout-list">
+        {% for clamp in clamps %}
+        <li
+          class="layout-item status-{{ clamp.status }}"
+          draggable="true"
+          data-id="{{ clamp.id }}"
+        >
+          <span class="layout-grip" aria-hidden="true">⠿</span>
+          <span class="layout-code">{{ clamp.code }}</span>
+          <span class="badge badge-{{ clamp.status }}">{{ status_labels.get(clamp.status, clamp.status) }}</span>
+          <span class="layout-move">
+            <button type="button" class="btn ghost layout-up" aria-label="上移">▲</button>
+            <button type="button" class="btn ghost layout-down" aria-label="下移">▼</button>
+          </span>
+        </li>
+        {% endfor %}
+      </ol>
+
+      <div class="actions">
+        <button type="submit" class="btn">保存顺序</button>
+        <button
+          type="button"
+          class="btn ghost"
+          data-reset="{{ fallback_ids | join(',') }}"
+          id="layout-reset"
+        >恢复窑号序</button>
+        <button type="button" class="btn ghost" onclick="closeDrawer()">取消</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    (function () {
+      var list = document.getElementById('layout-list');
+      var form = list.closest('form');
+      var orderInput = form.querySelector('input[name="ordering"]');
+
+      function syncOrder() {
+        var ids = Array.prototype.map.call(
+          list.querySelectorAll('.layout-item'),
+          function (el) { return el.getAttribute('data-id'); }
+        );
+        orderInput.value = ids.join(',');
+      }
+
+      function moveRow(row, dir) {
+        var swap = dir < 0 ? row.previousElementSibling : row.nextElementSibling;
+        if (!swap) return;
+        if (dir < 0) list.insertBefore(row, swap);
+        else list.insertBefore(swap, row);
+        syncOrder();
+      }
+
+      list.addEventListener('click', function (evt) {
+        var up = evt.target.closest('.layout-up');
+        var down = evt.target.closest('.layout-down');
+        if (!up && !down) return;
+        var row = evt.target.closest('.layout-item');
+        moveRow(row, up ? -1 : 1);
+      });
+
+      var dragged = null;
+      list.addEventListener('dragstart', function (evt) {
+        dragged = evt.target.closest('.layout-item');
+        if (dragged) dragged.classList.add('is-dragging');
+      });
+      list.addEventListener('dragend', function () {
+        if (dragged) dragged.classList.remove('is-dragging');
+        dragged = null;
+      });
+      list.addEventListener('dragover', function (evt) {
+        evt.preventDefault();
+        if (!dragged) return;
+        var over = evt.target.closest('.layout-item');
+        if (!over || over === dragged) return;
+        // 鼠标越过目标行中线则放到其后，否则放到其前
+        var rect = over.getBoundingClientRect();
+        if (evt.clientY > rect.top + rect.height / 2) {
+          list.insertBefore(dragged, over.nextElementSibling);
+        } else {
+          list.insertBefore(dragged, over);
+        }
+      });
+      list.addEventListener('drop', function (evt) {
+        evt.preventDefault();
+        syncOrder();
+      });
+
+      document.getElementById('layout-reset').addEventListener('click', function () {
+        var ids = this.getAttribute('data-reset').split(',');
+        var rows = {};
+        list.querySelectorAll('.layout-item').forEach(function (el) {
+          rows[el.getAttribute('data-id')] = el;
+        });
+        ids.forEach(function (id) {
+          if (rows[id]) list.appendChild(rows[id]);
+        });
+        syncOrder();
+      });
+    })();
+  </script>
+</aside>

@@ -9,6 +9,16 @@
   hx-target="#drawer-root"
   hx-swap="innerHTML"
 >登记班次</button>
+{% if user and user.role == 'admin' %}
+<button
+  type="button"
+  class="btn ghost"
+  hx-get="/drawer/layout"
+  hx-target="#drawer-root"
+  hx-swap="innerHTML"
+  title="调整顶部窑剪影的左右顺序并保存"
+>排列窑剪影</button>
+{% endif %}
 {% endblock %}
 
 {% block content %}

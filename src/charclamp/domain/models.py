@@ -1,13 +1,39 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
+from typing import Any
 
 from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.types import TypeDecorator
 
 
 def utcnow() -> datetime:
     return datetime.now(timezone.utc)
+
+
+class IntList(TypeDecorator):
+    """以 JSON 文本持久化的 int 列表（窑排列），跨后端可用。"""
+
+    impl = Text
+    cache_ok = True
+
+    def process_bind_param(self, value: list[int] | None, dialect: Any) -> str | None:
+        if value is None:
+            return None
+        return json.dumps([int(v) for v in value])
+
+    def process_result_value(self, value: str | None, dialect: Any) -> list[int] | None:
+        if value is None or value == "":
+            return None
+        try:
+            parsed = json.loads(value)
+        except (ValueError, TypeError):
+            return None
+        if not isinstance(parsed, list):
+            return None
+        return [int(v) for v in parsed]
 
 
 class Base(DeclarativeBase):
@@ -67,3 +93,17 @@ class BurnShift(Base):
     notes: Mapped[str] = mapped_column(Text, nullable=False, default="")
 
     clamp: Mapped[Clamp] = relationship(back_populates="shifts")
+
+
+class ClampLayout(Base):
+    """每个场地一行的顶部窑剪影排列（管理员维护，操作工只读）。"""
+
+    __tablename__ = "clamp_layouts"
+    __table_args__ = (UniqueConstraint("site_id", name="uq_clamp_layout_per_site"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    site_id: Mapped[int] = mapped_column(ForeignKey("sites.id"), nullable=False)
+    ordering: Mapped[list[int] | None] = mapped_column(IntList, nullable=True)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
+    updated_by: Mapped[str] = mapped_column(String(64), nullable=False, default="")
